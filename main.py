@@ -61,7 +61,11 @@ for idx, row in haz_studies_df.iterrows():
     json_data = json.dumps(data)
     m_io = Model_Interface()
     m_io.set_inputs_from_json(json_data=json_data)
-    m_io.run()
+    try:
+        m_io.run()
+    except:
+        print(f'issue with model run for study id {study_id}')
+        continue
     shi_data = m_io.mc.chems.shi_analysis_data
     data_for_output = {
         'study_id': study_id,
@@ -141,7 +145,7 @@ for idx, row in haz_studies_df.iterrows():
     final_time = t1 + timedelta(minutes=duration_remaining_min)
     
 
-    print(f'\n\n\n\n****************\n\n\nstudy id completed: {study_id}.  model {idx + 1} / {len(haz_studies_df)}.  model runtime: {t_delta_model_secs:.2f} sec | est time remaining: {duration_remaining_min:.2f} min | est completion time: {final_time.strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'\n\n\n\n****************\n\n\nstudy id completed: {study_id}.  model {models_completed} / {len(haz_studies_df) - idx + 1}.  model runtime: {t_delta_model_secs:.2f} sec | est time remaining: {duration_remaining_min:.2f} min | est completion time: {final_time.strftime("%Y-%m-%d %H:%M:%S")}')
 
     last_completed_study_id = study_id
     try:
