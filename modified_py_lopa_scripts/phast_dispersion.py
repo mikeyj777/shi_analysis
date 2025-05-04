@@ -81,6 +81,7 @@ class Phast_Dispersion:
         self.requests = []
         self.footprints_conc_elev_z_x_y_list = []
         self.footprints_conc_elev_z_x_y_df = {}
+        self.areas_m2 = {}
     
     def run(self):
         
@@ -185,8 +186,10 @@ class Phast_Dispersion:
             disp_output_config = dists_and_footprints_calc.dispersion_output_configs[curr_disp_output_config]
             if num_pts == 0:
                 continue
-            cps = dists_and_footprints_calc.contour_points[curr_pt:num_pts]
+            cps = dists_and_footprints_calc.contour_points[curr_pt:curr_pt + num_pts]
             for cp in cps:
+                if abs(cp.x) > 1e10:
+                    continue
                 self.footprints_conc_elev_z_x_y_list.append({
                     'conc_ppm': disp_output_config.concentration * 1e6,
                     'elev_m': disp_output_config.elevation,
@@ -195,6 +198,9 @@ class Phast_Dispersion:
                     'z': cp.z,
                 })
             curr_pt += num_pts
+        
+        if len(self.footprints_conc_elev_z_x_y_list) == 0:
+            return
         self.footprints_conc_elev_z_x_y_df = pd.DataFrame(self.footprints_conc_elev_z_x_y_list)
         df_for_areas = self.footprints_conc_elev_z_x_y_df[self.footprints_conc_elev_z_x_y_df['z'] <= 6]
         grouped = df_for_areas.groupby('conc_ppm')
@@ -204,7 +210,7 @@ class Phast_Dispersion:
             zxy = df[['z', 'x', 'y']].values
             self.areas_m2.append({
                 'conc_ppm': conc_ppm,
-                'areas_m2': flattening.get_zxy_area(zxy=zxy)
+                'area_m2': flattening.get_zxy_area(zxy=zxy)
             })
         apple = 1
 

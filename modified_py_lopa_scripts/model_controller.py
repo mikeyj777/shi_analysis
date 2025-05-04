@@ -54,7 +54,7 @@ class Model_Controller:
         self.debug_data = None
         self.timings = []
         self.dispersion_plots = []
-        self.impact_areas_m2_df = {}
+        self.impact_areas_m2_dict = {}
         
 
     def run(self):
@@ -469,7 +469,7 @@ class Model_Controller:
             # for this analysis, we'll maintain all "ca" objects. they contain the footprint results for all models.
             # we will also only analyze the nighttime condition to reduce runtime
             
-            self.impact_areas_m2_df[release_duration_sec] = {}
+            self.impact_areas_m2_dict[release_duration_sec] = {}
             wx_to_eval = [cd.WX_WORST_CASE]
             
             for wx in wx_to_eval:
@@ -477,7 +477,7 @@ class Model_Controller:
                 if flag_to_jump_to_next_time_step:
                     break
                 
-                self.impact_areas_m2_df[release_duration_sec][wx] = {}
+                self.impact_areas_m2_dict[release_duration_sec][wx] = {}
                 for haz in cd.HAZARD_ALL_TYPES:
                     if flag_to_jump_to_next_time_step:
                         break
@@ -529,8 +529,7 @@ class Model_Controller:
 
                         return ResultCode.FAIL_VALIDATION
                     
-                    flatten = Flattening(haz_cat_conc_footprints_df=phast_dispersion.haz_cat_conc_footprints_df, analysis_df=phast_dispersion.analysis_df)
-                    self.impact_areas_m2_df[release_duration_sec][wx][haz] = flatten.get_areas()
+                    self.impact_areas_m2_dict[release_duration_sec][wx][haz] = copy.deepcopy(phast_dispersion.areas_m2)
 
                     continue
 
