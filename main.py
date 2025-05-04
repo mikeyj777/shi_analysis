@@ -106,7 +106,7 @@ for idx, row in haz_studies_df.iterrows():
     if len(results) > 0:
         try:
             
-            with open('resuls.csv', 'a') as results_out:
+            with open('resuls.csv', 'a', newline='') as results_out:
                 fieldnames = list(data_for_output.keys())
                 writer = csv.DictWriter(results_out, fieldnames=fieldnames)
                 if not header_written:
