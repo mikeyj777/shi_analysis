@@ -23,8 +23,9 @@ except:
     print('could not get last completed study id.')
     pass
 
-haz_studies_df = haz_studies_df[haz_studies_df['StudyID'] > last_completed_study_id]
 haz_studies_df.sort_values(['StudyID'])
+haz_studies_df = haz_studies_df[haz_studies_df['StudyID'] > last_completed_study_id]
+
 
 results = []
 t0_0 = dt.now()
@@ -40,17 +41,14 @@ for idx, row in haz_studies_df.iterrows():
     elif isinstance(chems_rows, pd.DataFrame):
         chems_info = chems_rows.to_dict(orient='records')
     else:
-        print(f'issue with study id {study_id}')
-        apple = 1
-
+        print(f'issue getting chems from study id {study_id}')
+        last_completed_study_id = study_id
+        continue
     data = {
         'PrimaryInputs': row.to_dict(),
         'ChemicalComponents': chems_info,
     }
-    
-    
     json_data = json.dumps(data)
-
     m_io = Model_Interface()
     m_io.set_inputs_from_json(json_data=json_data)
     m_io.run()
@@ -73,7 +71,11 @@ for idx, row in haz_studies_df.iterrows():
             if data_item != 'temp_deg_c':
                 data_for_output[f'{condition}_shi_times_{data_item}'] = elem * shi_value
     p_disp = m_io.phast_disp
-    conc_idx = 1
+    if len(p_disp) == 0:
+        print(f'issue running study id {study_id}')
+        last_completed_study_id = study_id
+        continue
+
     for rel_dur_sec, p_disp_at_dur in p_disp.items():
         data_for_output['release_duration_sec'] = rel_dur_sec
         for wx, p_disp_at_dur_at_wx in p_disp_at_dur.items():
@@ -81,11 +83,9 @@ for idx, row in haz_studies_df.iterrows():
             for haz, p_disp_at_dur_at_wx_at_haz in p_disp_at_dur_at_wx.items():
                 data_for_output['hazard_type'] = haz
                 areas_m2 = p_disp_at_dur_at_wx_at_haz.areas_m2
-                conc_idx = 1
                 for area_data in areas_m2:
                     data_for_output[f'conc_ppm'] = area_data['conc_ppm']
                     data_for_output[f'area_m2'] = area_data['area_m2']
-                    conc_idx += 1
                     results.append(copy.deepcopy(data_for_output))
 
     try:
@@ -115,8 +115,6 @@ for idx, row in haz_studies_df.iterrows():
 
     print(f'\n\n\n\n****************\n\n\ncurrent study id just completed: {study_id}.  this is model {idx} out of {len(haz_studies_df)}.  time_to_run_model: {t_delta_model_secs} sec | time remaining: {duration_remaining_min} min')
 
-
-    apple = 1
     last_completed_study_id = study_id
     try:
         with open('curr_idx.txt', 'w') as idx_file_update:
@@ -124,11 +122,6 @@ for idx, row in haz_studies_df.iterrows():
     except Exception as e:
         print('could not update last completed study id in text file')
 
-
-#simulating for now until back on emn connection
-# m_io = main()
+    apple = 1
 
 apple = 1
-# store shi at process and storage conditions (based on key comp for toxic and overall for flammable)
-
-# store footprints for lfl / 50% lfl / 25% lfl / erpg-1 / erpg-2 / erpg-3 / 10xerpg-3
