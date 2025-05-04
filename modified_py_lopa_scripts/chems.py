@@ -313,8 +313,8 @@ class Chems:
         self.vapor_pressure_data = thermo_pio.vpress_pa_and_vapor_phase_comp_and_component_vapor_pressures(args=vp_args)
 
     def get_vapor_comp(self, data_dict):
-        if sum(data_dict['ys']) > 0:
-            return data_dict['ys']
+        if sum(data_dict['vapor_mol_composition']) > 0:
+            return data_dict['vapor_mol_composition']
         k_times_zi = data_dict['k_times_zi']
         return helpers.normalize_fractions(k_times_zi)
 
@@ -422,6 +422,7 @@ class Chems:
                         worst_shi = shi
                         worst_shi_idx = i
                         self.shi_analysis_data[condition]['shi_tox'] = worst_shi
+                        self.shi_analysis_data[condition]['shi_idx'] = i
                         # the target concentration will be worst-case toxic conc, but corrected 
                         # for its overall concentration in the vapor phase. 
                         # that is, if chemical X is lethal at 100 ppm 

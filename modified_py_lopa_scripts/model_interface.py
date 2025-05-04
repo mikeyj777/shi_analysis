@@ -152,33 +152,35 @@ class Model_Interface:
             composition.append(chem['Contribution'])
 
         bldg_nums_low_med_high = [0,0,0]
-        bldg_dists_low_med_high = [0,0,0]
+        bldg_dists_low_med_high = [10,10,10]
         bldg_hts_low_med_high = [0,0,0]
-        bldg_ach_low_med_high = [0,0,0]
+        bldg_ach_low_med_high = [1,1,1]
         bldg_nighttime_occupancy = [0,0,0]
         bldg_hvac_shutoff_min_low_med_high = [0,0,0]
         
-        bldg_data = d[bldgs_key]
-        
-        night_occ_translation = {
-            0: cd.KEYS_BLDG_LOW_OCC,
-            1: cd.KEYS_BLDG_MED_OCC,
-            2: cd.KEYS_BLDG_HIGH_OCC,
-            3: cd.KEYS_BLDG_UNOCCUPIED,
-            None: None
-        }
-
-        for bldg in bldg_data:
-            day_occ = bldg['OccupancyLevel']
-            bldg_nums_low_med_high[day_occ] = bldg['BuildingNumber']
-            bldg_dists_low_med_high[day_occ] = bldg['DistanceFromRelease']
-            bldg_hts_low_med_high[day_occ] = bldg['HVACHeight']
-            bldg_ach_low_med_high[day_occ] = bldg['AirChanges']
-            bldg_hvac_shutoff_min_low_med_high[day_occ] = bldg['AirHandlerShutOff']
+        if bldgs_key in d:
+            bldg_data = d[bldgs_key]
             
-            if not use_one_met_condition_worst_case:
-                night_occ = bldg['NighttimeOccupancyLevel']
-                bldg_nighttime_occupancy[day_occ] = night_occ_translation[night_occ]
+            night_occ_translation = {
+                0: cd.KEYS_BLDG_LOW_OCC,
+                1: cd.KEYS_BLDG_MED_OCC,
+                2: cd.KEYS_BLDG_HIGH_OCC,
+                3: cd.KEYS_BLDG_UNOCCUPIED,
+                None: None
+            }
+
+            for bldg in bldg_data:
+                day_occ = bldg['OccupancyLevel']
+                bldg_nums_low_med_high[day_occ] = bldg['BuildingNumber']
+                bldg_dists_low_med_high[day_occ] = bldg['DistanceFromRelease']
+                #  xxx debug apple - limiting number of height evaluations for this analysis
+                # bldg_hts_low_med_high[day_occ] = bldg['HVACHeight']
+                bldg_ach_low_med_high[day_occ] = bldg['AirChanges']
+                bldg_hvac_shutoff_min_low_med_high[day_occ] = bldg['AirHandlerShutOff']
+                
+                if not use_one_met_condition_worst_case:
+                    night_occ = bldg['NighttimeOccupancyLevel']
+                    bldg_nighttime_occupancy[day_occ] = night_occ_translation[night_occ]
 
         room_vol_m3 = None
         production_area_ach = None

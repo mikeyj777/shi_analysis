@@ -79,6 +79,8 @@ class Phast_Dispersion:
         self.cat_and_targ_concs_dict = None
 
         self.requests = []
+        self.footprints_conc_elev_z_x_y_list = []
+        self.footprints_conc_elev_z_x_y_df = {}
     
     def run(self):
         
@@ -107,11 +109,11 @@ class Phast_Dispersion:
 
         self.define_categories_and_target_concentrations()
 
-        # self.batch_call_footprints()
+        self.batch_call_footprints()
 
         # self.max_conc_at_distance()
 
-        self.max_conc_footprint()
+        # self.max_conc_footprint()
 
         apple = 1
 
@@ -138,27 +140,25 @@ class Phast_Dispersion:
         )
 
         curr_conc = -1
-        for elev in self.elevs_m:
-            for targ_conc in targ_concs:
-                if targ_conc == curr_conc:
-                    # serious+ use the same concentration values.  no need to repeat assessment
-                    continue
-                curr_conc = targ_conc
+        targ_concs = list(set(targ_concs))
+        targ_concs = sorted(targ_concs)
+        targ_concs = targ_concs[-2:]
+        for targ_conc in targ_concs:
+            for elev in self.elevs_m:
                 dispOutputCfg = DispersionOutputConfig()
                 dispOutputCfg.resolution = Resolution.LOW
-                if targ_conc == min(targ_concs):
-                    # the low conc is used to identify impacts to buildings.  this needs to be high res.
-                    dispOutputCfg.resolution = Resolution.HIGH
-                if targ_conc == max(targ_concs):
-                    # serious+ needs medium resolution for accuracy
-                    dispOutputCfg.resolution = Resolution.MEDIUM
+                # if targ_conc == min(targ_concs):
+                #     # the low conc is used to identify impacts to buildings.  this needs to be high res.
+                #     dispOutputCfg.resolution = Resolution.HIGH
+                # if targ_conc == max(targ_concs):
+                #     # serious+ needs medium resolution for accuracy
+                #     dispOutputCfg.resolution = Resolution.MEDIUM
                 dispOutputCfg.downwind_distance = np.inf
                 dispOutputCfg.special_concentration = SpecialConcentration.NOT_DEFINED
                 dispOutputCfg.concentration = targ_conc
                 dispOutputCfg.elevation = elev
                 dispOutputCfg.contour_type = ContourType.FOOTPRINT
                 self.distancesAndFootprintsCalc.dispersion_output_configs.append(dispOutputCfg)
-            curr_conc = -1
 
         self.mi.LOG_HANDLER('\n***\n\nInitiating Model:  Footprint Analysis at Elevation')
         t0 = dt.now(datetime.UTC)
@@ -171,8 +171,45 @@ class Phast_Dispersion:
         
         self.mi.LOG_HANDLER(log_msg)
 
+        self.parse_batch_call_footprints()
+
         return res
         
+    def parse_batch_call_footprints(self):
+        dists_and_footprints_calc = self.distancesAndFootprintsCalc
+        curr_pt = 0
+        self.footprints_conc_elev_z_x_y_list = []
+        curr_disp_output_config = -1
+        for num_pts in dists_and_footprints_calc.n_contour_points:
+            curr_disp_output_config += 1
+            disp_output_config = dists_and_footprints_calc.dispersion_output_configs[curr_disp_output_config]
+            if num_pts == 0:
+                continue
+            cps = dists_and_footprints_calc.contour_points[curr_pt:num_pts]
+            for cp in cps:
+                self.footprints_conc_elev_z_x_y_list.append({
+                    'conc_ppm': disp_output_config.concentration * 1e6,
+                    'elev_m': disp_output_config.elevation,
+                    'x': cp.x,
+                    'y': cp.y,
+                    'z': cp.z,
+                })
+            curr_pt += num_pts
+        self.footprints_conc_elev_z_x_y_df = pd.DataFrame(self.footprints_conc_elev_z_x_y_list)
+        df_for_areas = self.footprints_conc_elev_z_x_y_df[self.footprints_conc_elev_z_x_y_df['z'] <= 6]
+        grouped = df_for_areas.groupby('conc_ppm')
+        self.areas_m2 = []
+        flattening = Flattening()
+        for conc_ppm, df in grouped:
+            zxy = df[['z', 'x', 'y']].values
+            self.areas_m2.append({
+                'conc_ppm': conc_ppm,
+                'areas_m2': flattening.get_zxy_area(zxy=zxy)
+            })
+        apple = 1
+
+
+
 
 
     def prep_disp_params_set_averaging_time_and_concentration_endpoint(self):
@@ -557,9 +594,10 @@ class Phast_Dispersion:
             self.maxConcFootprintCalc = MaxConcFootprintCalculation(scalar_udm_outputs=None, weather=None, dispersion_records=None, dispersion_record_count=None, substrate=None, dispersion_output_config=None, material=None, dispersion_parameters=None)
             self.maxConcFootprintCalc.dispersion_parameters = self.dispParams
             self.curr_conc_footprints = []
-            resolution = Resolution.MEDIUM
-            if cat == cd.CAT_MINOR or cat == cd.CAT_MODERATE or self.vce:
-                resolution = Resolution.LOW
+            resolution = Resolution.LOW
+            # resolution = Resolution.MEDIUM
+            # if cat == cd.CAT_MINOR or cat == cd.CAT_MODERATE or self.vce:
+            #     resolution = Resolution.LOW
             self.phast_request_wrapper(calc = self.maxConcFootprintCalc, calc_descr='Max Conc Footprint at Elevation', conc_targ=targ, output_list_of_dicts=self.curr_conc_footprints, stored_data_descr=cd.CONC_CALC_CONC_FOOTPRINT, elevs_m=elevs_m, resolution=resolution, calc_request = self.max_conc_footprint_calc_request)
             # if len(self.curr_conc_footprints) == 0:
             #     raise Exception(Exception_Enum.DISPERSION_CALCULATION_ERROR)
