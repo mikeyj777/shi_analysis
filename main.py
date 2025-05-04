@@ -3,6 +3,7 @@ import copy
 import json
 import pandas as pd
 from datetime import datetime as dt
+from datetime import timedelta
 from py_lopa.model_interface import Model_Interface
 from py_lopa.calcs import helpers
 from py_lopa.calcs.consts import Consts
@@ -18,7 +19,8 @@ header_written = False
 try:
     with open('curr_idx.txt', 'r') as idx_file:
         last_completed_study_id = idx_file.read()
-        if last_completed_study_id is not None:
+        if last_completed_study_id is not None and last_completed_study_id != '':
+            last_completed_study_id = int(last_completed_study_id)
             header_written = True
         else:
             last_completed_study_id = -1
@@ -60,9 +62,12 @@ for idx, row in haz_studies_df.iterrows():
         'ave_nbp_deg_c': shi_data['ave_nbp_deg_c'],
     }
     for condition in ['storage', 'discharge']:
-        key_component_idx = shi_data[condition]['shi_idx']
-        key_component = m_io.mc.mi.CHEM_MIX[key_component_idx]
-        data_for_output[f'{condition}_key_component'] = key_component
+        data_for_output[f'{condition}_key_component'] = None
+        if 'shi_idx' in shi_data[condition]:
+            if shi_data[condition]['shi_idx'] >= 0:
+                key_component_idx = shi_data[condition]['shi_idx']
+                key_component = m_io.mc.mi.CHEM_MIX[key_component_idx]
+                data_for_output[f'{condition}_key_component'] = key_component
         data_for_output[f'{condition}_shi'] = None
         if 'shi_tox' in shi_data[condition]:
             shi_value = shi_data[condition]['shi_tox']
@@ -122,15 +127,19 @@ for idx, row in haz_studies_df.iterrows():
     rate = 0
     if t_delta_total_secs > 0:
         rate = models_completed / t_delta_total_secs
-    duration_remaining_sec = models_remaining * rate
+    duration_remaining_sec = 0
+    if rate > 0:
+        duration_remaining_sec = models_remaining / rate
     duration_remaining_min = duration_remaining_sec / 60
+    final_time = t1 + timedelta(minutes=duration_remaining_min)
+    
 
-    print(f'\n\n\n\n****************\n\n\ncurrent study id just completed: {study_id}.  this is model {idx + 1} out of {len(haz_studies_df)}.  time_to_run_model: {t_delta_model_secs} sec | time remaining: {duration_remaining_min} min')
+    print(f'\n\n\n\n****************\n\n\nstudy id completed: {study_id}.  model {idx + 1} / {len(haz_studies_df)}.  model runtime: {t_delta_model_secs:.2f} sec | est time remaining: {duration_remaining_min:.2f} min | est completion time: {final_time.strftime("%Y-%m-%d %H:%M:%S")}')
 
     last_completed_study_id = study_id
     try:
-        with open('curr_idx.txt', 'w') as idx_file_update:
-            idx_file_update.write(last_completed_study_id)
+        with open('/mapping_shi_to_conseq_target/curr_idx.txt', 'w') as idx_file_update:
+            idx_file_update.write(str(last_completed_study_id))
     except Exception as e:
         print('could not update last completed study id in text file')
 
