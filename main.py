@@ -30,6 +30,7 @@ except:
 
 haz_studies_df.sort_values(['StudyID'])
 haz_studies_df = haz_studies_df[haz_studies_df['StudyID'] > last_completed_study_id]
+haz_studies_df = haz_studies_df[haz_studies_df['ReleaseElevation'] <= 6]
 
 
 results = []
@@ -50,6 +51,9 @@ for idx, row in haz_studies_df.iterrows():
         print(f'issue getting chems from study id {study_id}')
         last_completed_study_id = study_id
         continue
+    elev_m = helpers.get_data_from_pandas_series_element(row['ReleaseElevation'])
+    if elev_m > 6:
+        continue
     data = {
         'PrimaryInputs': row.to_dict(),
         'ChemicalComponents': chems_info,
@@ -61,6 +65,7 @@ for idx, row in haz_studies_df.iterrows():
     shi_data = m_io.mc.chems.shi_analysis_data
     data_for_output = {
         'study_id': study_id,
+        'elev_m': elev_m,
         'ave_nbp_deg_c': shi_data['ave_nbp_deg_c'],
     }
     for condition in ['storage', 'discharge']:
