@@ -13,7 +13,6 @@ from py_lopa.calcs import helpers
 from py_lopa.calcs.get_phys_props import Get_Phys_Props
 from py_lopa.model_interface import Model_Interface
 from py_lopa.kml_processing.kml_generator import Kml_Generator
-import summarize_model_runs_from_json
 
 def run_gpp(m_io):
 
@@ -93,9 +92,6 @@ def main(down_with_gpp = False, generate_google_earth_output = False, summarize_
         t1 = dt.now(datetime.UTC)
         delta_t = t1 - m_io.t0
         print(f'Start Time {m_io.t0}  End time {t1}  time to run {delta_t}')
-
-    if summarize_files_when_complete:
-        summarize_model_runs_from_json.run()
     
     return m_io
 
