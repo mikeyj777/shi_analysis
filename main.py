@@ -40,6 +40,7 @@ for idx, row in haz_studies_df.iterrows():
     study_id = helpers.get_data_from_pandas_series_element(row['StudyID'])
     if study_id <= last_completed_study_id:
         continue
+    print(f'Initiating Study ID {study_id}')
     chems_rows = chem_comps_df[chem_comps_df['HazardStudy'] == study_id]
     if isinstance(chems_rows, pd.Series):
         chems_info = [chems_rows.to_dict()]
@@ -59,6 +60,7 @@ for idx, row in haz_studies_df.iterrows():
     m_io.run()
     shi_data = m_io.mc.chems.shi_analysis_data
     data_for_output = {
+        'study_id': study_id,
         'ave_nbp_deg_c': shi_data['ave_nbp_deg_c'],
     }
     for condition in ['storage', 'discharge']:
