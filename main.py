@@ -1,6 +1,7 @@
 import csv
 import copy
 import json
+import numpy as np
 import pandas as pd
 from datetime import datetime as dt
 from datetime import timedelta
@@ -14,7 +15,7 @@ haz_studies_df = pd.read_csv("data/csvs/haz_studies.csv")
 # "StudyChemicalComposition" table - index = HazardStudy
 chem_comps_df = pd.read_csv("data/csvs/chem_comps.csv")
 
-last_completed_study_id = -1
+last_completed_study_id = np.inf
 header_written = False
 try:
     with open('curr_idx.txt', 'r') as idx_file:
@@ -23,13 +24,13 @@ try:
             last_completed_study_id = int(last_completed_study_id)
             header_written = True
         else:
-            last_completed_study_id = -1
+            last_completed_study_id = np.inf
 except:
     print('could not get last completed study id.')
     pass
 
-haz_studies_df.sort_values(['StudyID'])
-haz_studies_df = haz_studies_df[haz_studies_df['StudyID'] > last_completed_study_id]
+haz_studies_df = haz_studies_df.sort_values(['StudyID'], ascending=[False])
+haz_studies_df = haz_studies_df[haz_studies_df['StudyID'] < last_completed_study_id]
 haz_studies_df = haz_studies_df[haz_studies_df['ReleaseElevation'] <= 6]
 
 
@@ -39,7 +40,7 @@ models_completed = 0
 for idx, row in haz_studies_df.iterrows():
     t0 = dt.now()
     study_id = helpers.get_data_from_pandas_series_element(row['StudyID'])
-    if study_id <= last_completed_study_id:
+    if study_id >= last_completed_study_id:
         continue
     print(f'Initiating Study ID {study_id}')
     chems_rows = chem_comps_df[chem_comps_df['HazardStudy'] == study_id]
@@ -109,10 +110,11 @@ for idx, row in haz_studies_df.iterrows():
                 areas_m2 = p_disp_at_dur_at_wx_at_haz.areas_m2
                 if len(areas_m2) == 0:
                     continue
-                for area_data in areas_m2:
-                    data_for_output[f'conc_ppm'] = area_data['conc_ppm']
-                    data_for_output[f'area_m2'] = area_data['area_m2']
-                    results.append(copy.deepcopy(data_for_output))
+                conc_types = ['low', 'high']
+                for area_data, conc_type in zip(areas_m2, conc_types):
+                    data_for_output[f'conc_{conc_type}_ppm'] = area_data['conc_ppm']
+                    data_for_output[f'area_conc_{conc_type}_m2'] = area_data['area_m2']
+                results.append(copy.deepcopy(data_for_output))
     
     if len(results) > 0:
         try:
@@ -134,7 +136,7 @@ for idx, row in haz_studies_df.iterrows():
     t_delta_total = t1 - t0_0
     t_delta_total_secs = t_delta_total.total_seconds()
     models_completed += 1
-    models_remaining = len(haz_studies_df) - idx + 1
+    models_remaining = len(haz_studies_df) - models_completed
     rate = 0
     if t_delta_total_secs > 0:
         rate = models_completed / t_delta_total_secs
@@ -145,7 +147,7 @@ for idx, row in haz_studies_df.iterrows():
     final_time = t1 + timedelta(minutes=duration_remaining_min)
     
 
-    print(f'\n\n\n\n****************\n\n\nstudy id completed: {study_id}.  model {models_completed} / {len(haz_studies_df) - idx + 1}.  model runtime: {t_delta_model_secs:.2f} sec | est time remaining: {duration_remaining_min:.2f} min | est completion time: {final_time.strftime("%Y-%m-%d %H:%M:%S")}')
+    print(f'\n\n\n\n****************\n\n\nstudy id completed: {study_id}.  model {models_completed} / {idx}.  model runtime: {t_delta_model_secs:.2f} sec | est time remaining: {duration_remaining_min:.2f} min | est completion time: {final_time.strftime("%Y-%m-%d %H:%M:%S")}')
 
     last_completed_study_id = study_id
     try:
