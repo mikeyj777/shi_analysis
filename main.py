@@ -68,33 +68,47 @@ for idx, row in haz_studies_df.iterrows():
         print(f'issue with model run for study id {study_id}')
         continue
     shi_data = m_io.mc.chems.shi_analysis_data
-    data_for_output = {
-        'study_id': study_id,
-        'elev_m': elev_m,
-        'ave_nbp_deg_c': shi_data['ave_nbp_deg_c'],
-    }
-    for condition in ['storage', 'discharge']:
-        data_for_output[f'{condition}_key_component'] = None
-        if 'shi_idx' in shi_data[condition]:
-            if shi_data[condition]['shi_idx'] >= 0:
-                key_component_idx = shi_data[condition]['shi_idx']
-                key_component = m_io.mc.mi.CHEM_MIX[key_component_idx]
-                data_for_output[f'{condition}_key_component'] = key_component
-        data_for_output[f'{condition}_shi'] = None
-        if 'shi_tox' in shi_data[condition]:
-            shi_value = shi_data[condition]['shi_tox']
-            data_for_output[f'{condition}_shi'] = shi_value
-        data_for_output[f'{condition}_lfl'] = None
-        if 'lfl' in shi_data[condition]:
-            lfl = shi_data[condition]['lfl']
-            data_for_output[f'{condition}_lfl'] = lfl
-        for data_item in ['temp_deg_c', 'total_vapor_moles', 'component_vapor_moles', 'total_moles', 'component_total_moles']:
-            elem = shi_data[condition][data_item]
-            if isinstance(elem, list):
-                elem = elem[key_component_idx]
-            data_for_output[f'{condition}_{data_item}'] = elem
-            if data_item != 'temp_deg_c':
-                data_for_output[f'{condition}_shi_times_{data_item}'] = elem * shi_value
+    if len(shi_data) == 0:
+        print(f'issue running study id {study_id}')
+        last_completed_study_id = study_id
+        continue
+    data_for_output = {}
+    try:
+        data_for_output = {
+            'study_id': study_id,
+            'elev_m': elev_m,
+            'ave_nbp_deg_c': shi_data['ave_nbp_deg_c'],
+            'overall_ave_mw': shi_data['overall_ave_mw'],
+        }
+        for condition in ['storage', 'discharge']:
+            data_for_output[f'{condition}_ave_vap_mw'] = shi_data[condition]['ave_vap_mw']
+            data_for_output[f'{condition}_key_component'] = None
+            if 'shi_idx' in shi_data[condition]:
+                if shi_data[condition]['shi_idx'] >= 0:
+                    key_component_idx = shi_data[condition]['shi_idx']
+                    key_component = m_io.mc.mi.CHEM_MIX[key_component_idx]
+                    data_for_output[f'{condition}_key_component'] = key_component
+            data_for_output[f'{condition}_shi'] = None
+            if 'shi_tox' in shi_data[condition]:
+                shi_value = shi_data[condition]['shi_tox']
+                data_for_output[f'{condition}_shi'] = shi_value
+            data_for_output[f'{condition}_lfl'] = None
+            if 'lfl' in shi_data[condition]:
+                lfl = shi_data[condition]['lfl']
+                data_for_output[f'{condition}_lfl'] = lfl
+            for data_item in ['temp_deg_c', 'vapor_mol_composition', 'total_vapor_moles', 'component_vapor_moles', 'total_moles', 'component_total_moles']:
+                elem = shi_data[condition][data_item]
+                if isinstance(elem, list):
+                    elem = elem[key_component_idx]
+                data_for_output[f'{condition}_{data_item}'] = elem
+                if data_item != 'temp_deg_c':
+                    data_for_output[f'{condition}_shi_times_{data_item}'] = elem * shi_value
+    except:
+        pass
+    if len(data_for_output) == 0:
+        print(f'issue running study id {study_id}')
+        last_completed_study_id = study_id
+        continue
     p_disp = m_io.phast_disp
     if len(p_disp) == 0:
         print(f'issue running study id {study_id}')
@@ -119,9 +133,10 @@ for idx, row in haz_studies_df.iterrows():
     if len(results) > 0:
         try:
             
-            with open('resuls.csv', 'a', newline='') as results_out:
+            with open('results.csv', 'a', newline='') as results_out:
                 fieldnames = list(data_for_output.keys())
                 writer = csv.DictWriter(results_out, fieldnames=fieldnames)
+                header_written=False
                 if not header_written:
                     writer.writeheader()
                     header_written = True
