@@ -6,30 +6,23 @@ haz_studies_df = pd.read_csv("data/csvs/haz_studies.csv")
 
 df = pd.read_csv('results_complete.csv')
 
-def isnumeric(x):
-    return isinstance(x, (int, float)) and not isinstance(x, bool)
+def get_data_from_pandas(elem):
+    if isinstance(elem, pd.Series):
+        elem = elem.values[0]
+    return elem
 
 output = []
 for _, row in df.iterrows():
     row_for_iter = row.to_dict()
     row_out = row.to_dict()
-    for k, v in row_for_iter.items():
-        if k.lower() == 'study_id':
-            continue
-        if k[:3].lower() == 'log':
-            continue
-        if not isnumeric(v):
-            continue
-        ans = 0
-        k_new = f'log_{k}'
-        if k[-5:].lower() == 'deg_c':
-            k_new = k_new[:-1] + 'k'
-            if v is not None:
-                v += 273.15
-        if v is not None and v != 0:
-            ans = log10(v)
-        row_out[k_new] = ans
+    study_id = row_for_iter['study_id']
+    study_id = get_data_from_pandas(study_id)
+    study_row = haz_studies_df[haz_studies_df['StudyID'] == study_id]
+    press_psig = get_data_from_pandas(study_row['StoragePressure'])
+    row_out['press_psig'] = press_psig
     output.append(row_out)
 
 df_out = pd.DataFrame(output)
 df_out.to_csv('results_complete_take_2.csv')
+
+apple = 1
