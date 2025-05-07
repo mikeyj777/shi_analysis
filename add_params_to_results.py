@@ -1,7 +1,10 @@
 from math import log10
 import pandas as pd
 
-df = pd.read_csv('results_for_log.csv')
+# "HazardStudy" db table - index = StudyID
+haz_studies_df = pd.read_csv("data/csvs/haz_studies.csv")
+
+df = pd.read_csv('results_complete.csv')
 
 def isnumeric(x):
     return isinstance(x, (int, float)) and not isinstance(x, bool)
@@ -29,4 +32,4 @@ for _, row in df.iterrows():
     output.append(row_out)
 
 df_out = pd.DataFrame(output)
-df_out.to_csv('results_complete.csv')
+df_out.to_csv('results_complete_take_2.csv')
