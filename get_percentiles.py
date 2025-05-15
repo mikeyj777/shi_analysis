@@ -19,10 +19,12 @@ for _, row in df.iterrows():
             continue
         if pd.isna(v):
             continue
-        log_val = -10
-        if v > 0:
-            log_val = log10(v)
-        row_out[f'log_{k}'] = log_val
+        ans = None
+        try:
+            ans = (v-df[k].min()) / (df[k].max()-df[k].min())
+        except:
+            pass
+        row_out[f'percentile_{k}'] = ans
 
     output.append(row_out)
 
